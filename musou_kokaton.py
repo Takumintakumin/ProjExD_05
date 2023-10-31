@@ -249,6 +249,54 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Item(pg.sprite.Sprite):
+    """
+    アイテムを生成するクラス
+    実装済みアイテム：回復薬
+    """
+    
+    i = 0
+    img_1 = pg.transform.rotozoom(pg.image.load(f"ex04/fig/万能薬.png"), 0, 0.20)
+    img_2 = pg.transform.rotozoom(pg.image.load(f"ex04/fig/毒薬.png"), 0, 0.20)
+
+    def __init__(self):
+        super().__init__()
+        self.i = random.randint(0,9)
+        if self.i != 0:
+            self.image = __class__.img_1
+        else:
+            self.image = __class__.img_2
+        self.rect = self.image.get_rect()
+        self.rect.center = WIDTH, random.randint(0,HEIGHT)
+        self.vx = random.randint(-8, -1)
+
+    def update(self):
+        self.rect.centerx += self.vx
+        if self.rect.left < 0:
+            self.kill()
+
+class Effect(pg.sprite.Sprite):
+    """
+    エフェクトを生成する
+    """
+    def __init__(self, obj: "Item", life: int, num :int):
+        super().__init__()
+        if num != 0:
+            img = pg.image.load("ex04/fig/Effect.png")
+        else:
+            img = pg.image.load("ex04/fig/Bad_Effect.png")
+        self.imgs = [img, pg.transform.flip(img, 1, 1)]
+        self.image = self.imgs[0]
+        self.rect = self.image.get_rect(center=obj.rect.center)
+        self.life = life
+
+    def update(self):
+        self.life -= 1
+        self.image = self.imgs[self.life//10%2]
+        if self.life < 0:
+            self.kill()
+
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -260,6 +308,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    items = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -274,6 +323,8 @@ def main():
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
+        if tmr%200 == 0:  # 200フレームに1回, 回復薬が出現する
+            items.add(Item())
 
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
@@ -288,6 +339,12 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.score_up(1)  # 1点アップ
+
+        for item in pg.sprite.spritecollide(bird, items, True): # 回復薬とこうかとんが接触する
+            if item.i != 0:  #回復薬に接触したとき
+                exps.add(Effect(item, 50, item.i))
+            else: #毒薬に接触したとき
+                exps.add(Effect(item, 50, item.i))
 
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
             bird.change_img(8, screen) # こうかとん悲しみエフェクト
@@ -306,6 +363,9 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
+        items.update()
+        items.draw(screen)
+        
         pg.display.update()
         tmr += 1
         clock.tick(50)
