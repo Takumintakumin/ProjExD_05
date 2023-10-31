@@ -4,6 +4,7 @@ import sys
 import time
 
 import pygame as pg
+from pygame.sprite import AbstractGroup
 
 
 WIDTH = 1600  # ゲームウィンドウの幅
@@ -141,6 +142,41 @@ class Bomb(pg.sprite.Sprite):
             self.kill()
 
 
+class BossBomb(pg.sprite.Sprite):
+    """
+    ボスの爆弾に関するクラス
+    """
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
+
+    def __init__(self, boss: "Boss", bird: Bird):
+        """
+        爆弾円Surfaceを生成する
+        引数1 boss：爆弾を投下する敵機
+        引数2 bird：攻撃対象のこうかとん
+        """
+        super().__init__()
+        rad = random.randint(50, 80)  # 爆弾円の半径：80以上100以下の乱数
+        color = random.choice(__class__.colors)  # 爆弾円の色：クラス変数からランダム選択
+        self.image = pg.Surface((2.5*rad, 2.5*rad))
+        pg.draw.circle(self.image, color, (rad, rad), rad)
+        self.image.set_colorkey((0, 0, 0))
+        self.rect = self.image.get_rect()
+        # 爆弾を投下するemyから見た攻撃対象のbirdの方向を計算
+        self.vx, self.vy = calc_orientation(boss.rect, bird.rect)  
+        self.rect.centerx = boss.rect.centerx
+        self.rect.centery = boss.rect.centery+boss.rect.height/2
+        self.speed = 9
+
+    def update(self):
+        """
+        爆弾を速度ベクトルself.vx, self.vyに基づき移動させる
+        引数 screen：画面Surface
+        """
+        self.rect.move_ip(+self.speed*self.vx, +self.speed*self.vy)
+        if check_bound(self.rect) != (True, True):
+            self.kill()
+
+
 class Beam(pg.sprite.Sprite):
     """
     ビームに関するクラス
@@ -175,7 +211,7 @@ class Explosion(pg.sprite.Sprite):
     """
     爆発に関するクラス
     """
-    def __init__(self, obj: "Bomb|Enemy", life: int):
+    def __init__(self, obj: "Bomb|Boss", life: int):
         """
         爆弾が爆発するエフェクトを生成する
         引数1 obj：爆発するBombまたは敵機インスタンス
@@ -204,7 +240,7 @@ class Enemy(pg.sprite.Sprite):
     敵機に関するクラス
     """
     imgs = [pg.image.load(f"ex04/fig/alien{i}.png") for i in range(1, 4)]
-    
+    #imgs = [pg.image.load("ex05/shinigami.png")]
     def __init__(self):
         super().__init__()
         self.image = random.choice(__class__.imgs)
@@ -225,6 +261,54 @@ class Enemy(pg.sprite.Sprite):
             self.vy = 0
             self.state = "stop"
         self.rect.centery += self.vy
+
+class Boss(pg.sprite.Sprite):
+    """
+    ボスに関するクラス
+    """
+    imgs = [pg.image.load("ex05/shinigami.png")]
+    
+    def __init__(self):
+        super().__init__()
+        self.image = random.choice(__class__.imgs)
+        self.rect = self.image.get_rect()
+        self.rect.center = random.randint(1000, WIDTH), 0
+        self.vy = +6
+        self.bound = random.randint(50, HEIGHT/2)  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+
+    def update(self):
+        """
+        bossを速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centery > self.bound:
+            self.vy = 0
+            self.state = "stop"
+        self.rect.centery += self.vy
+
+
+class Boss_hp(): 
+    """
+    ボスのヒットポイントに関するクラス
+    """
+    def __init__(self):
+        self.font = pg.font.Font(None, 50)
+        self.color = (0, 0, 255)
+        self.boss_hp = 10
+        self.image = self.font.render(f"Boss_hp: {self.boss_hp}", 0, self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = 1000, HEIGHT-50 
+    
+    def hp_down(self,down):
+        self.boss_hp -= down
+
+    def update(self, screen: pg.Surface):
+        self.image = self.font.render(f"Boss_hp: {self.boss_hp}", 0, self.color)
+        screen.blit(self.image, self.rect)
+
 
 
 class Score:
@@ -254,12 +338,14 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load("ex04/fig/pg_bg.jpg")
     score = Score()
-
+    boss_hp = Boss_hp()
     bird = Bird(3, (900, 400))
     bombs = pg.sprite.Group()
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    bosses = pg.sprite.Group()
+    bossbombs = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -272,22 +358,47 @@ def main():
                 beams.add(Beam(bird))
         screen.blit(bg_img, [0, 0])
 
-        if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
-            emys.add(Enemy())
+        if tmr%200 == 0 and bosses is not None:
+            if len(bosses) < 1:  # 200フレームに1回，敵機を出現させる
+                emys.add(Enemy())
+        #if tmr%400 == 0:
+         #   bosses.add(Boss())
+        if score.score >= 10 and bosses is not None:
+                if len(bosses) < 1:
+                    
+                    bosses.add(Boss())
 
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
                 # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
                 bombs.add(Bomb(emy, bird))
+        
+        for boss in bosses:
+            if boss.state == "stop" and tmr%5 == 0:
+                bombs.add(BossBomb(boss,bird))
+                
+            #elif bomb_count % 10 == 0:
+
 
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.score_up(10)  # 10点アップ
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
+        
+        for boss in pg.sprite.groupcollide(bosses, beams, True, True).keys():
+            boss_hp.hp_down(int(1))
+            if boss_hp.boss_hp == 0:
+                exps.add(Explosion(boss, 400))  # 爆発エフェクト
+                score.score_up(100)  # 10点アップ
+            
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.score_up(1)  # 1点アップ
+
+        for bossbomb in pg.sprite.groupcollide(bossbombs,beams,True,True).keys():
+            exps.add(Explosion(bossbomb,400))
+            score.score_up(3)
 
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
             bird.change_img(8, screen) # こうかとん悲しみエフェクト
@@ -301,11 +412,16 @@ def main():
         beams.draw(screen)
         emys.update()
         emys.draw(screen)
+        bosses.update()
+        bosses.draw(screen)
         bombs.update()
         bombs.draw(screen)
+        bossbombs.update()
+        bossbombs.draw(screen)
         exps.update()
         exps.draw(screen)
         score.update(screen)
+        boss_hp.update(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
