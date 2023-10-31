@@ -78,7 +78,7 @@ class Bird(pg.sprite.Sprite):
         引数1 num：こうかとん画像ファイル名の番号
         引数2 screen：画面Surface
         """
-        self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
+        self.image = pg.transform.rotozoom(pg.image.load(f"ex05/fig/{num}.png"), 0, 2.0)
         screen.blit(self.image, self.rect)
 
     def update(self, key_lst: list[bool], screen: pg.Surface):
@@ -214,6 +214,35 @@ class Enemy(pg.sprite.Sprite):
         self.bound = random.randint(50, HEIGHT/2)  # 停止位置
         self.state = "down"  # 降下状態or停止状態
         self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+        self.speed = 10
+
+    def update(self):
+        """
+        敵機を速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centery > self.bound:
+            self.vy = 0
+            self.state = "stop"
+        self.rect.centery += self.vy
+
+
+class Enemy2(pg.sprite.Sprite):
+    """
+    敵機に関するクラス
+    """
+    imgs = pg.transform.rotozoom(pg.image.load(f"ex05/fig/kohacu.png"),0, 1)
+    
+    def __init__(self):
+        super().__init__()
+        self.image = (__class__.imgs)
+        self.rect = self.image.get_rect()
+        self.rect.center = random.randint(0, WIDTH), 0
+        self.vy = +6
+        self.bound = random.randint(50, HEIGHT)  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
 
     def update(self):
         """
@@ -260,6 +289,8 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    emys2 = pg.sprite.Group()
+    enemies_killed = 0 #倒した敵カウンター
 
     tmr = 0
     clock = pg.time.Clock()
@@ -275,16 +306,37 @@ def main():
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
 
+        #敵機がビームによって倒されたとき
+        if enemies_killed >= 20 :
+           if tmr%100 == 0:
+            emys2.add(Enemy2()) 
+
+        for emy2 in emys2:
+            if emy2.state == "stop" and tmr%emy2.interval == 0:
+                bombs.add(Bomb(emy2, bird))
+
+
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
                 # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
                 bombs.add(Bomb(emy, bird))
+                
+
+        
 
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.score_up(10)  # 10点アップ
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
+            enemies_killed += 1 #カウント１
 
+        for emy2 in pg.sprite.groupcollide(emys2, beams, True, True).keys():
+            exps.add(Explosion(emy2, 100))  # 爆発エフェクト
+            score.score_up(20)  # 10点アップ
+            bird.change_img(6, screen)  # こうかとん喜びエフェクト
+            enemies_killed += 2 #カウント２
+
+        
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.score_up(1)  # 1点アップ
@@ -301,11 +353,13 @@ def main():
         beams.draw(screen)
         emys.update()
         emys.draw(screen)
+        emys2.update()
+        emys2.draw(screen)
         bombs.update()
         bombs.draw(screen)
         exps.update()
         exps.draw(screen)
-        score.update(screen)
+        score.update(screen) 
         pg.display.update()
         tmr += 1
         clock.tick(50)
