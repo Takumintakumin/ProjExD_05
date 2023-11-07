@@ -348,7 +348,7 @@ def main():
     bossbombs = pg.sprite.Group()
 
     tmr = 0
-    clock = pg.time.Clock()
+    clock =  pg.time.Clock()
     while True:
         key_lst = pg.key.get_pressed()
         for event in pg.event.get():
