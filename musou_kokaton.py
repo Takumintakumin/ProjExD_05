@@ -56,7 +56,7 @@ class Bird(pg.sprite.Sprite):
         引数2 xy：飛行機画像の位置座標タプル
         """
         super().__init__()
-        img0 = pg.transform.rotozoom(pg.image.load(f"ex05/w.png"), 0, 0.2)
+        img0 = pg.transform.rotozoom(pg.image.load(f"ex05/fig/w.png"), 0, 0.2)
         img = pg.transform.flip(img0, True, False)  # デフォルトのこうかとん
         self.imgs = {
             (+1, 0): img,  # 右
@@ -84,7 +84,7 @@ class Bird(pg.sprite.Sprite):
         引数1 num：飛行機画像ファイル名の番号
         引数2 screen：画面Surface
         """
-        self.image = pg.transform.rotozoom(pg.image.load(f"ex05/w.png"), 0, 0.2)
+        self.image = pg.transform.rotozoom(pg.image.load(f"ex05/fig/w.png"), 0, 0.2)
         screen.blit(self.image, self.rect)
 
     
@@ -109,7 +109,7 @@ class Bird(pg.sprite.Sprite):
             self.image = self.imgs[self.dire]
         if self.state == "hyper":
             self.hyper_life -= 1
-            self.image = pg.transform.rotozoom(pg.image.load("ex05/barrier.png"), 0, 0.4)
+            self.image = pg.transform.rotozoom(pg.image.load("ex05/fig/barrier.png"), 0, 0.4)
         if self.state == "hyper" and self.hyper_life <0:
             self.change_state("normal", -1)
          
@@ -207,8 +207,6 @@ class Beam(pg.sprite.Sprite):
         self.score = score
         self.vx, self.vy = bird.get_direction()
         self.angle = math.degrees(math.atan2(-self.vy, self.vx))
-        self.angle2 = math.degrees(math.atan2(-self.vy+45, self.vx+45))
-        self.angle3 = math.degrees(math.atan2(-self.vy-45, self.vx-45))
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), self.angle, 1.0)
         self.vx = math.cos(math.radians(self.angle))
         self.vy = -math.sin(math.radians(self.angle))
@@ -248,8 +246,6 @@ class Beam_up(pg.sprite.Sprite):
         self.score = score
         self.vx, self.vy = bird.get_direction()
         self.angle = math.degrees(math.atan2(-self.vy, self.vx))
-        self.angle2 = math.degrees(math.atan2(-self.vy+45, self.vx+45))
-        self.angle3 = math.degrees(math.atan2(-self.vy-45, self.vx-45))
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), self.angle, 1.0)
         self.vx = math.cos(math.radians(self.angle))
         self.vy = -math.sin(math.radians(self.angle))
@@ -282,8 +278,6 @@ class Beam_down(pg.sprite.Sprite):
         self.score = score
         self.vx, self.vy = bird.get_direction()
         self.angle = math.degrees(math.atan2(-self.vy, self.vx))
-        self.angle2 = math.degrees(math.atan2(-self.vy+45, self.vx+45))
-        self.angle3 = math.degrees(math.atan2(-self.vy-45, self.vx-45))
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), self.angle, 1.0)
         self.vx = math.cos(math.radians(self.angle))
         self.vy = -math.sin(math.radians(self.angle))
@@ -314,7 +308,7 @@ class Explosion(pg.sprite.Sprite):
         引数2 life：爆発時間
         """
         super().__init__()
-        img = pg.image.load("ex04/fig/explosion.gif")
+        img = pg.image.load("ex05/fig/explosion.gif")
         self.imgs = [img, pg.transform.flip(img, 1, 1)]
         self.image = self.imgs[0]
         self.rect = self.image.get_rect(center=obj.rect.center)
@@ -336,7 +330,7 @@ class Enemy(pg.sprite.Sprite):
     """
     敵機に関するクラス
     """
-    imgs = [pg.image.load(f"ex04/fig/alien{i}.png") for i in range(1, 4)]
+    imgs = [pg.image.load(f"ex05/fig/alien{i}.png") for i in range(1, 4)]
     def __init__(self):
         super().__init__()
         self.image = random.choice(__class__.imgs)
@@ -359,11 +353,39 @@ class Enemy(pg.sprite.Sprite):
             self.state = "stop"
         self.rect.centery += self.vy
 
+
+class Enemy2(pg.sprite.Sprite):
+    """
+    敵機に関するクラス
+    """
+    imgs = pg.transform.rotozoom(pg.image.load(f"ex05/fig/kohacu.png"),0, 1)
+    
+    def __init__(self):
+        super().__init__()
+        self.image = (__class__.imgs)
+        self.rect = self.image.get_rect()
+        self.rect.center = random.randint(0, WIDTH), 0
+        self.vy = +6
+        self.bound = random.randint(50, HEIGHT)  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+
+    def update(self):
+        """
+        敵機を速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
+        引数 screen：画面Surface
+        """
+        if self.rect.centery > self.bound:
+            self.vy = 0
+            self.state = "stop"
+        self.rect.centery += self.vy
+
 class Boss(pg.sprite.Sprite):
     """
     ボスに関するクラス
     """
-    imgs = [pg.image.load("ex05/shinigami.png")]
+    imgs = [pg.image.load("ex05/fig/shinigami.png")]
     
     def __init__(self):
         super().__init__()
@@ -478,7 +500,7 @@ class Score:
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    bg_img = pg.image.load("ex05/Uchu.jpg") #宇宙背景
+    bg_img = pg.image.load("ex05/fig/Uchu.jpg") #宇宙背景
     clock  = pg.time.Clock()
     bg_img2 = pg.transform.flip(bg_img, True, False)
     score = Score()
@@ -494,6 +516,8 @@ def main():
     emys = pg.sprite.Group()
     bosses = pg.sprite.Group()
     bossbombs = pg.sprite.Group()
+    emys2 = pg.sprite.Group()
+    enemies_killed = 0 #倒した敵カウンター
 
     tmr = 0
     clock = pg.time.Clock()
@@ -515,9 +539,14 @@ def main():
         if tmr%200 == 0 and bosses is not None:
             if len(bosses) < 1:  # 200フレームに1回，敵機を出現させる
                 emys.add(Enemy())
+
+        if enemies_killed >= 2 :
+           if tmr%100 == 0:
+            emys2.add(Enemy2()) 
+
         #if tmr%400 == 0:
          #   bosses.add(Boss())
-        if score.score >= 10 and bosses is not None:
+        if score.score >= 400 and bosses is not None:
                 if len(bosses) < 1:
                     
                     bosses.add(Boss())
@@ -532,12 +561,23 @@ def main():
                 bombs.add(BossBomb(boss,bird))
                 
             #elif bomb_count % 10 == 0:
+        
+        for emy2 in emys2:
+            if emy2.state == "stop" and tmr%emy2.interval == 0:
+                bombs.add(Bomb(emy2, bird))
+
+        for emy2 in pg.sprite.groupcollide(emys2, beams, True, True).keys():
+            exps.add(Explosion(emy2, 100))  # 爆発エフェクト
+            score.score_up(20)  # 10点アップ
+            bird.change_img(6, screen)  # こうかとん喜びエフェクト
+            enemies_killed += 2 #カウント２
 
 
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.score_up(10)  # 10点アップ
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
+            enemies_killed += 1 #カウント１
         
         for boss in pg.sprite.groupcollide(bosses, beams, True, True).keys():
             boss_hp.hp_down(int(1))
@@ -579,6 +619,8 @@ def main():
         beams.draw(screen)
         emys.update()
         emys.draw(screen)
+        emys2.update()
+        emys2.draw(screen)
         bosses.update()
         bosses.draw(screen)
         bombs.update()
