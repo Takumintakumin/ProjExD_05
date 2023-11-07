@@ -198,17 +198,18 @@ class Beam(pg.sprite.Sprite):
     """
     ビームに関するクラス
     """
-    def __init__(self, bird: Bird):
+    def __init__(self, bird: Bird, score: int):
         """
         ビーム画像Surfaceを生成する
         引数 bird：ビームを放つこうかとん
         """
         super().__init__()
+        self.score = score
         self.vx, self.vy = bird.get_direction()
-        angle = math.degrees(math.atan2(-self.vy, self.vx))
-        self.image = pg.transform.rotozoom(pg.image.load(f"ex05/fig/beam.png"), angle, 2.0)
-        self.vx = math.cos(math.radians(angle))
-        self.vy = -math.sin(math.radians(angle))
+        self.angle = math.degrees(math.atan2(-self.vy, self.vx))
+        self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), self.angle, 1.0)
+        self.vx = math.cos(math.radians(self.angle))
+        self.vy = -math.sin(math.radians(self.angle))
         self.rect = self.image.get_rect()
         self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
@@ -220,7 +221,78 @@ class Beam(pg.sprite.Sprite):
         ビームを速度ベクトルself.vx, self.vyに基づき移動させる
         引数 screen：画面Surface
         """
-        self.rect.move_ip(+self.speed*self.vx, +self.speed*self.vy)
+        if self.score < 100:
+            self.rect.move_ip(+self.speed*self.vx, +self.speed*self.vy)
+        if 50 <= self.score:
+            self.rect.move_ip(+self.speed*self.vx*2, +self.speed*self.vy*2)  #弾速の向上
+        elif 100 <= self.score:
+            self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), self.angle, 1.5)  #弾のサイズを変更
+            self.rect.move_ip(+self.speed*self.vx*2, +self.speed*self.vy*2)  #弾速の向上
+            
+        if check_bound(self.rect) != (True, True):
+            self.kill()
+
+
+class Beam_up(pg.sprite.Sprite):
+    """
+    上方向に向かうビームに関するクラス
+    """
+    def __init__(self, bird: Bird, score: int):
+        """
+        ビーム画像Surfaceを生成する
+        引数 bird：ビームを放つこうかとん
+        """
+        super().__init__()
+        self.score = score
+        self.vx, self.vy = bird.get_direction()
+        self.angle = math.degrees(math.atan2(-self.vy, self.vx))
+        self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), self.angle, 1.0)
+        self.vx = math.cos(math.radians(self.angle))
+        self.vy = -math.sin(math.radians(self.angle))
+        self.rect = self.image.get_rect()
+        self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
+        self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
+        self.speed = 10
+
+    def update(self):
+        """
+        ビームを速度ベクトルself.vx+1, self.vy+1に基づき移動させる
+        引数 screen：画面Surface
+        """
+        self.rect.move_ip(+self.speed*self.vx+1, +self.speed*self.vy+1)
+            
+        if check_bound(self.rect) != (True, True):
+            self.kill()
+
+
+class Beam_down(pg.sprite.Sprite):
+    """
+    下方向に向かうビームに関するクラス
+    """
+    def __init__(self, bird: Bird, score: int):
+        """
+        ビーム画像Surfaceを生成する
+        引数 bird：ビームを放つこうかとん
+        """
+        super().__init__()
+        self.score = score
+        self.vx, self.vy = bird.get_direction()
+        self.angle = math.degrees(math.atan2(-self.vy, self.vx))
+        self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), self.angle, 1.0)
+        self.vx = math.cos(math.radians(self.angle))
+        self.vy = -math.sin(math.radians(self.angle))
+        self.rect = self.image.get_rect()
+        self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
+        self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
+        self.speed = 10
+
+    def update(self):
+        """
+        ビームを速度ベクトルself.vx-1, self.vy+-1に基づき移動させる
+        引数 screen：画面Surface
+        """
+        self.rect.move_ip(+self.speed*self.vx-1, +self.speed*self.vy-1)
+            
         if check_bound(self.rect) != (True, True):
             self.kill()
 
@@ -432,9 +504,11 @@ def main():
     clock  = pg.time.Clock()
     bg_img2 = pg.transform.flip(bg_img, True, False)
     score = Score()
+
     boss_hp = Boss_hp()
     zanki = Zanki()
     go = gameover()
+
     bird = Bird(3, (900, 400))
     bombs = pg.sprite.Group()
     beams = pg.sprite.Group()
@@ -453,7 +527,13 @@ def main():
             if event.type == pg.QUIT:
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                beams.add(Beam(bird))
+                if score.score < 200:
+                    beams.add(Beam(bird, score.score))
+                elif 200 <= score.score:
+                    beams.add(Beam(bird, score.score))
+                    beams.add(Beam_up(bird, score.score))
+                    beams.add(Beam_down(bird, score.score))
+
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0 and bosses is not None:
