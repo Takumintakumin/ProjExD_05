@@ -14,7 +14,7 @@ HEIGHT = 900  # ゲームウィンドウの高さ
 def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
     """
     オブジェクトが画面内か画面外かを判定し，真理値タプルを返す
-    引数 obj：オブジェクト（爆弾，こうかとん，ビーム）SurfaceのRect
+    引数 obj：オブジェクト（爆弾，飛行機，ビーム）SurfaceのRect
     戻り値：横方向，縦方向のはみ出し判定結果（画面内：True／画面外：False）
     """
     yoko, tate = True, True
@@ -37,7 +37,7 @@ def calc_orientation(org: pg.Rect, dst: pg.Rect) -> tuple[float, float]:
     return x_diff/norm, y_diff/norm
 
 
-class Bird(pg.sprite.Sprite):
+class Plane(pg.sprite.Sprite):
     """
     ゲームキャラクターに関するクラス
     """
@@ -57,7 +57,7 @@ class Bird(pg.sprite.Sprite):
         """
         super().__init__()
         img0 = pg.transform.rotozoom(pg.image.load(f"ex05/fig/w.png"), 0, 0.2)
-        img = pg.transform.flip(img0, True, False)  # デフォルトのこうかとん
+        img = pg.transform.flip(img0, True, False)  # デフォルトの飛行機
         self.imgs = {
             (+1, 0): img,  # 右
             (+1, -1): pg.transform.rotozoom(img, 45, 1.0),  # 右上
@@ -130,11 +130,11 @@ class Bomb(pg.sprite.Sprite):
     """
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
 
-    def __init__(self, emy: "Enemy", bird: Bird):
+    def __init__(self, emy: "Enemy", plane: Plane):
         """
         爆弾円Surfaceを生成する
         引数1 emy：爆弾を投下する敵機
-        引数2 bird：攻撃対象のこうかとん
+        引数2 plane：攻撃対象の飛行機
         """
         super().__init__()
         rad = random.randint(10, 50)  # 爆弾円の半径：10以上50以下の乱数
@@ -143,8 +143,8 @@ class Bomb(pg.sprite.Sprite):
         pg.draw.circle(self.image, color, (rad, rad), rad)
         self.image.set_colorkey((0, 0, 0))
         self.rect = self.image.get_rect()
-        # 爆弾を投下するemyから見た攻撃対象のbirdの方向を計算
-        self.vx, self.vy = calc_orientation(emy.rect, bird.rect)  
+        # 爆弾を投下するemyから見た攻撃対象のplaneの方向を計算
+        self.vx, self.vy = calc_orientation(emy.rect, plane.rect)  
         self.rect.centerx = emy.rect.centerx
         self.rect.centery = emy.rect.centery+emy.rect.height/2
         self.speed = 6
@@ -165,11 +165,11 @@ class BossBomb(pg.sprite.Sprite):
     """
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
 
-    def __init__(self, boss: "Boss", bird: Bird):
+    def __init__(self, boss: "Boss", plane: Plane):
         """
         爆弾円Surfaceを生成する
         引数1 boss：爆弾を投下する敵機
-        引数2 bird：攻撃対象のこうかとん
+        引数2 plane：攻撃対象の飛行機
         """
         super().__init__()
         rad = random.randint(50, 80)  # 爆弾円の半径：80以上100以下の乱数
@@ -178,8 +178,8 @@ class BossBomb(pg.sprite.Sprite):
         pg.draw.circle(self.image, color, (rad, rad), rad)
         self.image.set_colorkey((0, 0, 0))
         self.rect = self.image.get_rect()
-        # 爆弾を投下するemyから見た攻撃対象のbirdの方向を計算
-        self.vx, self.vy = calc_orientation(boss.rect, bird.rect)  
+        # 爆弾を投下するemyから見た攻撃対象のplaneの方向を計算
+        self.vx, self.vy = calc_orientation(boss.rect, plane.rect)  
         self.rect.centerx = boss.rect.centerx
         self.rect.centery = boss.rect.centery+boss.rect.height/2
         self.speed = 9
@@ -198,21 +198,21 @@ class Beam(pg.sprite.Sprite):
     """
     ビームに関するクラス
     """
-    def __init__(self, bird: Bird, score: int):
+    def __init__(self, plane: Plane, score: int):
         """
         ビーム画像Surfaceを生成する
-        引数 bird：ビームを放つこうかとん
+        引数 plane：ビームを放つ飛行機
         """
         super().__init__()
         self.score = score
-        self.vx, self.vy = bird.get_direction()
+        self.vx, self.vy = plane.get_direction()
         self.angle = math.degrees(math.atan2(-self.vy, self.vx))
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), self.angle, 1.0)
         self.vx = math.cos(math.radians(self.angle))
         self.vy = -math.sin(math.radians(self.angle))
         self.rect = self.image.get_rect()
-        self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
-        self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
+        self.rect.centery = plane.rect.centery+plane.rect.height*self.vy
+        self.rect.centerx = plane.rect.centerx+plane.rect.width*self.vx
         self.speed = 10
 
 
@@ -237,21 +237,21 @@ class Beam_up(pg.sprite.Sprite):
     """
     上方向に向かうビームに関するクラス
     """
-    def __init__(self, bird: Bird, score: int):
+    def __init__(self, plane: Plane, score: int):
         """
         ビーム画像Surfaceを生成する
-        引数 bird：ビームを放つこうかとん
+        引数 plane：ビームを放つ飛行機
         """
         super().__init__()
         self.score = score
-        self.vx, self.vy = bird.get_direction()
+        self.vx, self.vy = plane.get_direction()
         self.angle = math.degrees(math.atan2(-self.vy, self.vx))
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), self.angle, 1.0)
         self.vx = math.cos(math.radians(self.angle))
         self.vy = -math.sin(math.radians(self.angle))
         self.rect = self.image.get_rect()
-        self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
-        self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
+        self.rect.centery = plane.rect.centery+plane.rect.height*self.vy
+        self.rect.centerx = plane.rect.centerx+plane.rect.width*self.vx
         self.speed = 10
 
     def update(self):
@@ -269,21 +269,21 @@ class Beam_down(pg.sprite.Sprite):
     """
     下方向に向かうビームに関するクラス
     """
-    def __init__(self, bird: Bird, score: int):
+    def __init__(self, plane: Plane, score: int):
         """
         ビーム画像Surfaceを生成する
-        引数 bird：ビームを放つこうかとん
+        引数 plane：ビームを放つ飛行機
         """
         super().__init__()
         self.score = score
-        self.vx, self.vy = bird.get_direction()
+        self.vx, self.vy = plane.get_direction()
         self.angle = math.degrees(math.atan2(-self.vy, self.vx))
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), self.angle, 1.0)
         self.vx = math.cos(math.radians(self.angle))
         self.vy = -math.sin(math.radians(self.angle))
         self.rect = self.image.get_rect()
-        self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
-        self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
+        self.rect.centery = plane.rect.centery+plane.rect.height*self.vy
+        self.rect.centerx = plane.rect.centerx+plane.rect.width*self.vx
         self.speed = 10
 
     def update(self):
@@ -416,7 +416,7 @@ class Boss_hp():
     def __init__(self):
         self.font = pg.font.Font(None, 50)
         self.color = (0, 0, 255)
-        self.boss_hp = 10
+        self.boss_hp = 50
         self.image = self.font.render(f"Boss_hp: {self.boss_hp}", 0, self.color)
         self.rect = self.image.get_rect()
         self.rect.center = 1000, HEIGHT-50 
@@ -473,6 +473,19 @@ class gameover:
     def update(self, screen: pg.Surface):
         self.gimage = self.font.render(f"Game Over", 0 , self.color)
         screen.blit(self.gimage, self.rect)
+
+class clear: 
+    def __init__(self):
+        self.font = pg.font.Font(None, 50)
+        self.color = (255, 255, 255)
+        self.image = self.font.render("Game Clear",0, self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = 750,HEIGHT -450
+    
+
+    def update(self, screen: pg.Surface):
+        self.cimage = self.font.render("Game Clear",0, self.color)
+        screen.blit(self.image, self.rect)
 
 class Score:
     """
@@ -546,7 +559,7 @@ class Effect(pg.sprite.Sprite):
 
 
 def main():
-    pg.display.set_caption("真！こうかとん無双")
+    pg.display.set_caption("宇宙シューティング")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load("ex05/fig/Uchu.jpg") #宇宙背景
     clock  = pg.time.Clock()
@@ -556,8 +569,9 @@ def main():
     boss_hp = Boss_hp()
     zanki = Zanki()
     go = gameover()
+    cl = clear()
 
-    bird = Bird(3, (900, 400))
+    plane = Plane(3, (900, 400))
     bombs = pg.sprite.Group()
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
@@ -577,11 +591,11 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 if score.score < 200:
-                    beams.add(Beam(bird, score.score))
+                    beams.add(Beam(plane, score.score))
                 elif 200 <= score.score:
-                    beams.add(Beam(bird, score.score))
-                    beams.add(Beam_up(bird, score.score))
-                    beams.add(Beam_down(bird, score.score))
+                    beams.add(Beam(plane, score.score))
+                    beams.add(Beam_up(plane, score.score))
+                    beams.add(Beam_down(plane, score.score))
 
         screen.blit(bg_img, [0, 0])
 
@@ -589,13 +603,11 @@ def main():
             if len(bosses) < 1:  # 200フレームに1回，敵機を出現させる
                 emys.add(Enemy())
 
-        if enemies_killed >= 2 :
+        if enemies_killed >= 10 :
            if tmr%100 == 0:
             emys2.add(Enemy2()) 
 
-        #if tmr%400 == 0:
-         #   bosses.add(Boss())
-        if score.score >= 400 and bosses is not None:
+        if  enemies_killed > 30 and bosses is not None:
                 if len(bosses) < 1:
                     
                     bosses.add(Boss())
@@ -607,29 +619,25 @@ def main():
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
                 # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
-                bombs.add(Bomb(emy, bird))
+                bombs.add(Bomb(emy, plane))
         
         for boss in bosses:
             if boss.state == "stop" and tmr%5 == 0:
-                bombs.add(BossBomb(boss,bird))
-                
-            #elif bomb_count % 10 == 0:
+                bombs.add(BossBomb(boss,plane))
         
         for emy2 in emys2:
             if emy2.state == "stop" and tmr%emy2.interval == 0:
-                bombs.add(Bomb(emy2, bird))
+                bombs.add(Bomb(emy2, plane))
 
         for emy2 in pg.sprite.groupcollide(emys2, beams, True, True).keys():
             exps.add(Explosion(emy2, 100))  # 爆発エフェクト
             score.score_up(20)  # 10点アップ
-            bird.change_img(6, screen)  # こうかとん喜びエフェクト
             enemies_killed += 2 #カウント２
 
 
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.score_up(10)  # 10点アップ
-            bird.change_img(6, screen)  # こうかとん喜びエフェクト
             enemies_killed += 1 #カウント１
         
         for boss in pg.sprite.groupcollide(bosses, beams, True, True).keys():
@@ -647,16 +655,18 @@ def main():
             exps.add(Explosion(bossbomb,400))
             score.score_up(3)
 
-        for item in pg.sprite.spritecollide(bird, items, True): # 回復薬とこうかとんが接触する
+        for item in pg.sprite.spritecollide(plane, items, True): # 回復薬と飛行機が接触する
             if item.i != 0:  #回復薬に接触したとき
+                zanki.zanki_up(1)
                 exps.add(Effect(item, 50, item.i))
             else: #毒薬に接触したとき
+                zanki.zanki_down(1)
                 exps.add(Effect(item, 50, item.i))
 
-        for bomb in pg.sprite.spritecollide(bird, bombs, True):
-            if bird.state == "normal":
+        for bomb in pg.sprite.spritecollide(plane, bombs, True):
+            if plane.state == "normal":
                 zanki.zanki_down(1) # 残機１なくなる
-                bird.change_state("hyper", 100)
+                plane.change_state("hyper", 100)
                 if(zanki.zanki == 0):
                     go.update(screen)  #ゲームオーバー表示
                     score.update(screen)
@@ -664,8 +674,16 @@ def main():
                     pg.display.update()
                     time.sleep(2)
                     return
-            if bird.state == "hyper":
+            if plane.state == "hyper":
                 exps.add(Explosion(bomb, 50))  
+        if boss_hp.boss_hp == 0:
+            cl.update(screen)
+            score.update(screen)
+            zanki.update(screen)
+            pg.display.update()
+            time.sleep(2)
+            return
+
         
         x = tmr%6400
         screen.blit(bg_img, [-x, 0])
@@ -673,7 +691,7 @@ def main():
         screen.blit(bg_img, [3200-x, 0])
         screen.blit(bg_img2, [4800-x, 0])
         screen.blit(bg_img, [6400-x, 0])
-        bird.update(key_lst, screen)
+        plane.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
         emys.update()
