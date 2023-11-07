@@ -29,7 +29,7 @@ def calc_orientation(org: pg.Rect, dst: pg.Rect) -> tuple[float, float]:
     """
     orgから見て，dstがどこにあるかを計算し，方向ベクトルをタプルで返す
     引数1 org：爆弾SurfaceのRect
-    引数2 dst：こうかとんSurfaceのRect
+    引数2 dst：飛行機のSurfaceのRect
     戻り値：orgから見たdstの方向ベクトルを表すタプル
     """
     x_diff, y_diff = dst.centerx-org.centerx, dst.centery-org.centery
@@ -39,7 +39,7 @@ def calc_orientation(org: pg.Rect, dst: pg.Rect) -> tuple[float, float]:
 
 class Bird(pg.sprite.Sprite):
     """
-    ゲームキャラクター（こうかとん）に関するクラス
+    ゲームキャラクターに関するクラス
     """
     delta = {  # 押下キーと移動量の辞書
         pg.K_UP: (0, -1),
@@ -48,14 +48,15 @@ class Bird(pg.sprite.Sprite):
         pg.K_RIGHT: (+1, 0),
     }
 
+    
     def __init__(self, num: int, xy: tuple[int, int]):
         """
-        こうかとん画像Surfaceを生成する
-        引数1 num：こうかとん画像ファイル名の番号
-        引数2 xy：こうかとん画像の位置座標タプル
+        飛行機画像Surfaceを生成する
+        引数1 num：飛行機画像ファイル名の番号
+        引数2 xy：飛行機画像の位置座標タプル
         """
         super().__init__()
-        img0 = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
+        img0 = pg.transform.rotozoom(pg.image.load(f"ex05/w.png"), 0, 0.2)
         img = pg.transform.flip(img0, True, False)  # デフォルトのこうかとん
         self.imgs = {
             (+1, 0): img,  # 右
@@ -72,19 +73,24 @@ class Bird(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
+        self.dire = (+1, 0)
+        self.state = "normal"
+        self.hyper_life = 1
 
+    
     def change_img(self, num: int, screen: pg.Surface):
         """
-        こうかとん画像を切り替え，画面に転送する
-        引数1 num：こうかとん画像ファイル名の番号
+        飛行機画像を切り替え，画面に転送する
+        引数1 num：飛行機画像ファイル名の番号
         引数2 screen：画面Surface
         """
-        self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
+        self.image = pg.transform.rotozoom(pg.image.load(f"ex05/w.png"), 0, 0.2)
         screen.blit(self.image, self.rect)
 
+    
     def update(self, key_lst: list[bool], screen: pg.Surface):
         """
-        押下キーに応じてこうかとんを移動させる
+        押下キーに応じて飛行機を移動させる
         引数1 key_lst：押下キーの真理値リスト
         引数2 screen：画面Surface
         """
@@ -101,11 +107,22 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
+        if self.state == "hyper":
+            self.hyper_life -= 1
+            self.image = pg.transform.rotozoom(pg.image.load("ex05/barrier.png"), 0, 0.4)
+        if self.state == "hyper" and self.hyper_life <0:
+            self.change_state("normal", -1)
+         
         screen.blit(self.image, self.rect)
+    
     
     def get_direction(self) -> tuple[int, int]:
         return self.dire
     
+    
+    def change_state(self, state, hyper_life):
+        self.state = state
+        self.hyper_life = hyper_life
 
 class Bomb(pg.sprite.Sprite):
     """
@@ -197,6 +214,7 @@ class Beam(pg.sprite.Sprite):
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
         self.speed = 10
 
+
     def update(self):
         """
         ビームを速度ベクトルself.vx, self.vyに基づき移動させる
@@ -224,6 +242,7 @@ class Explosion(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=obj.rect.center)
         self.life = life
 
+
     def update(self):
         """
         爆発時間を1減算した爆発経過時間_lifeに応じて爆発画像を切り替えることで
@@ -240,7 +259,6 @@ class Enemy(pg.sprite.Sprite):
     敵機に関するクラス
     """
     imgs = [pg.image.load(f"ex04/fig/alien{i}.png") for i in range(1, 4)]
-    #imgs = [pg.image.load("ex05/shinigami.png")]
     def __init__(self):
         super().__init__()
         self.image = random.choice(__class__.imgs)
@@ -250,6 +268,7 @@ class Enemy(pg.sprite.Sprite):
         self.bound = random.randint(50, HEIGHT/2)  # 停止位置
         self.state = "down"  # 降下状態or停止状態
         self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+
 
     def update(self):
         """
@@ -311,6 +330,50 @@ class Boss_hp():
 
 
 
+class Zanki:
+    """
+    自分の残機を表示するクラス
+    初期残機 3
+    回復 1
+    """
+
+    def __init__(self):
+        self.font = pg.font.Font(None, 50)
+        self.color = (255, 255, 255)
+        self.zanki = 3
+        self.zimage = self.font.render(f"HP: {self.zanki}", 0, self.color)
+        self.rect  =self.zimage.get_rect()
+        self.rect.center = 100, HEIGHT-90
+
+
+    def zanki_up(self,add):
+        self.zanki += add
+    
+
+    def zanki_down(self, down):
+        self.zanki -= down
+
+
+    def update(self, screen: pg.Surface):
+        self.zimage = self.font.render(f"HP: {self.zanki}", 0 , self.color)
+        screen.blit(self.zimage, self.rect) 
+
+
+class gameover:
+    """
+    ゲームオーバー時の表示するクラス
+    """
+    def __init__(self):
+        self.font  =pg.font.Font(None, 50)
+        self.color = (255, 255, 255)
+        self.image = self.font.render("Game Over", 0, self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = 750,HEIGHT -450
+    
+    def update(self, screen: pg.Surface):
+        self.gimage = self.font.render(f"Game Over", 0 , self.color)
+        screen.blit(self.gimage, self.rect)
+
 class Score:
     """
     打ち落とした爆弾，敵機の数をスコアとして表示するクラス
@@ -319,7 +382,7 @@ class Score:
     """
     def __init__(self):
         self.font = pg.font.Font(None, 50)
-        self.color = (0, 0, 255)
+        self.color = (255, 255, 255)
         self.score = 0
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         self.rect = self.image.get_rect()
@@ -327,6 +390,7 @@ class Score:
 
     def score_up(self, add):
         self.score += add
+    
 
     def update(self, screen: pg.Surface):
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
@@ -336,9 +400,13 @@ class Score:
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    bg_img = pg.image.load("ex04/fig/pg_bg.jpg")
+    bg_img = pg.image.load("ex05/Uchu.jpg") #宇宙背景
+    clock  = pg.time.Clock()
+    bg_img2 = pg.transform.flip(bg_img, True, False)
     score = Score()
     boss_hp = Boss_hp()
+    zanki = Zanki()
+    go = gameover()
     bird = Bird(3, (900, 400))
     bombs = pg.sprite.Group()
     beams = pg.sprite.Group()
@@ -400,13 +468,26 @@ def main():
             exps.add(Explosion(bossbomb,400))
             score.score_up(3)
 
-        if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
-            bird.change_img(8, screen) # こうかとん悲しみエフェクト
-            score.update(screen)
-            pg.display.update()
-            time.sleep(2)
-            return
-
+        for bomb in pg.sprite.spritecollide(bird, bombs, True):
+            if bird.state == "normal":
+                zanki.zanki_down(1) # 残機１なくなる
+                bird.change_state("hyper", 100)
+                if(zanki.zanki == 0):
+                    go.update(screen)  #ゲームオーバー表示
+                    score.update(screen)
+                    zanki.update(screen)
+                    pg.display.update()
+                    time.sleep(2)
+                    return
+            if bird.state == "hyper":
+                exps.add(Explosion(bomb, 50))  
+        
+        x = tmr%6400
+        screen.blit(bg_img, [-x, 0])
+        screen.blit(bg_img2, [1600-x, 0])
+        screen.blit(bg_img, [3200-x, 0])
+        screen.blit(bg_img2, [4800-x, 0])
+        screen.blit(bg_img, [6400-x, 0])
         bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
@@ -422,6 +503,7 @@ def main():
         exps.draw(screen)
         score.update(screen)
         boss_hp.update(screen)
+        zanki.update(screen)    
         pg.display.update()
         tmr += 1
         clock.tick(50)
