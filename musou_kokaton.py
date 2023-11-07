@@ -504,8 +504,8 @@ class Item(pg.sprite.Sprite):
     """
     
     i = 0
-    img_1 = pg.transform.rotozoom(pg.image.load(f"ex04/fig/万能薬.png"), 0, 0.20)
-    img_2 = pg.transform.rotozoom(pg.image.load(f"ex04/fig/毒薬.png"), 0, 0.20)
+    img_1 = pg.transform.rotozoom(pg.image.load(f"ex05/fig/万能薬.png"), 0, 0.20)
+    img_2 = pg.transform.rotozoom(pg.image.load(f"ex05/fig/毒薬.png"), 0, 0.20)
 
     def __init__(self):
         super().__init__()
@@ -530,9 +530,9 @@ class Effect(pg.sprite.Sprite):
     def __init__(self, obj: "Item", life: int, num :int):
         super().__init__()
         if num != 0:
-            img = pg.image.load("ex04/fig/Effect.png")
+            img = pg.image.load("ex05/fig/Effect.png")
         else:
-            img = pg.image.load("ex04/fig/Bad_Effect.png")
+            img = pg.image.load("ex05/fig/Bad_Effect.png")
         self.imgs = [img, pg.transform.flip(img, 1, 1)]
         self.image = self.imgs[0]
         self.rect = self.image.get_rect(center=obj.rect.center)
