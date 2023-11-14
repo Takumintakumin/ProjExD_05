@@ -516,8 +516,8 @@ class Item(pg.sprite.Sprite):
     実装済みアイテム：回復薬
     """
     i = 0
-    img_1 = pg.transform.rotozoom(pg.image.load(f"ex05/万能薬.png"), 0, 0.20)
-    img_2 = pg.transform.rotozoom(pg.image.load(f"ex05/毒薬.png"), 0, 0.20)
+    img_1 = pg.transform.rotozoom(pg.image.load(f"ex05/fig/万能薬.png"), 0, 0.20)
+    img_2 = pg.transform.rotozoom(pg.image.load(f"ex05/fig/毒薬.png"), 0, 0.20)
 
     def __init__(self):
         super().__init__()
@@ -542,9 +542,9 @@ class Effect(pg.sprite.Sprite):
     def __init__(self, obj: "Item", life: int, num :int):
         super().__init__()
         if num != 0:
-            img = pg.image.load("ex05/Effect.png")
+            img = pg.image.load("ex05/fig/Effect.png")
         else:
-            img = pg.image.load("ex05/Bad_Effect.png")
+            img = pg.image.load("ex05/fig/Bad_Effect.png")
         self.imgs = [img, pg.transform.flip(img, 1, 1)]
         self.image = self.imgs[0]
         self.rect = self.image.get_rect(center=obj.rect.center)
@@ -582,7 +582,7 @@ def main():
     items = pg.sprite.Group()
 
     tmr = 0
-    clock = pg.time.Clock()
+    clock =  pg.time.Clock()
     while True:
         key_lst = pg.key.get_pressed()
         for event in pg.event.get():
